@@ -1,0 +1,26 @@
+name: Update Jobs Daily
+on:
+  schedule:
+    - cron: '0 8 * * *' # Se ejecuta a las 8 AM cada día
+  workflow_dispatch: # Permite ejecutarlo manualmente desde GitHub
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run Scraper
+        run: python scraper_reel.py
+      - name: Commit and Push
+        run: |
+          git config --global user.name 'JobBot'
+          git config --global user.email 'bot@jobhub.com'
+          git add data/jobs.csv
+          git commit -m "Auto-update jobs" || exit 0
+          git push
