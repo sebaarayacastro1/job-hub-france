@@ -4,12 +4,10 @@ import os
 import datetime
 
 def run_real_scraper():
-    # Buscamos roles de Data en Francia
     search_query = "Data Analyst, Data Engineer, Data Scientist"
     print(f"🚀 Recherche d'offres en France pour : {search_query}...")
 
     try:
-        # Aquí se define 'jobs' al llamar a la librería
         jobs = scrape_jobs(
             site_name=["indeed", "linkedin", "glassdoor"],
             search_term=search_query,
@@ -20,14 +18,11 @@ def run_real_scraper():
         )
 
         if not jobs.empty:
-            # Seleccionamos las columnas incluyendo 'site' para la Fuente
             df_final = jobs[['title', 'company', 'location', 'job_url', 'site']].copy()
             
-            # Renombramos para que app.py lo entienda
             df_final.columns = ['Poste', 'Entreprise', 'Ville', 'Lien', 'Source']
             df_final['Date'] = datetime.date.today()
             
-            # Clasificación de Stage o Alternance
             def classify(title):
                 t = str(title).lower()
                 if any(x in t for x in ['alternance', 'apprenti', 'apprentissage']):
@@ -38,7 +33,6 @@ def run_real_scraper():
             
             df_final['Type'] = df_final['Poste'].apply(classify)
             
-            # Creamos la carpeta data si no existe y guardamos
             os.makedirs('data', exist_ok=True)
             df_final.to_csv("data/jobs.csv", index=False, encoding='utf-8')
             print(f"✅ Succès ! {len(df_final)} offres récupérées.")
