@@ -51,7 +51,7 @@ if os.path.exists(csv_path):
     # --- AFFICHAGE DES INDICATEURS (KPIs) ---
     col1, col2 = st.columns(2)
     col1.metric("Offres trouvées", len(df_filtered))
-    col2.metric("Dernière mise à jour", last_update) # <--- Hora real del archivo
+    col2.metric("Dernière mise à jour", last_update)
     
     st.divider()
 
