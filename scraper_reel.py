@@ -4,15 +4,17 @@ import os
 import datetime
 
 def run_real_scraper():
-    search_query = "Data Analyst, Data Engineer, Data Scientist"
+    # Adding SIAD and Stage specific terms to the query
+    search_query = "Data Analyst Stage, Data Engineer Stage, Data Scientist, Informatique Décisionnelle"
     print(f"🚀 Recherche d'offres en France pour : {search_query}...")
 
     try:
+        # Added google (for WTTJ/Hellowork) and pole_emploi (France Travail)
         jobs = scrape_jobs(
-            site_name=["indeed", "linkedin", "glassdoor"],
+            site_name=["linkedin", "indeed", "google", "glassdoor", "pole_emploi"],
             search_term=search_query,
             location="France",
-            results_wanted=100, 
+            results_wanted=150, 
             hours_old=72,
             country_freedom=True,
         )
@@ -21,17 +23,26 @@ def run_real_scraper():
             df_final = jobs[['title', 'company', 'location', 'job_url', 'site']].copy()
             
             df_final.columns = ['Poste', 'Entreprise', 'Ville', 'Lien', 'Source']
-            df_final['Date'] = datetime.date.today()
+            df_final['Date'] = datetime.date.today().strftime('%d/%m/%Y')
             
             def classify(title):
                 t = str(title).lower()
+                # Prioritizing Stage classification
+                if any(x in t for x in ['stage', 'intern', 'stagiaire', 'internship']):
+                    return "Stage"
                 if any(x in t for x in ['alternance', 'apprenti', 'apprentissage']):
                     return "Alternance"
-                if any(x in t for x in ['stage', 'intern', 'stagiaire']):
-                    return "Stage"
                 return "CDI/Autre"
             
             df_final['Type'] = df_final['Poste'].apply(classify)
+
+            # Data Engineering: Drop duplicates by Link and sort by Type
+            df_final = df_final.drop_duplicates(subset=['Lien'])
+            
+            # Sort to show Stage first in the CSV
+            priority = {'Stage': 0, 'Alternance': 1, 'CDI/Autre': 2}
+            df_final['Priority'] = df_final['Type'].map(priority)
+            df_final = df_final.sort_values(by='Priority').drop(columns=['Priority'])
             
             os.makedirs('data', exist_ok=True)
             df_final.to_csv("data/jobs.csv", index=False, encoding='utf-8')
