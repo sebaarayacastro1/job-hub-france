@@ -15,7 +15,7 @@ def run_real_scraper():
             search_term=search_query,
             location="France",
             results_wanted=150, 
-            hours_old=72,
+            hours_old=168,
             country_freedom=True,
         )
 
