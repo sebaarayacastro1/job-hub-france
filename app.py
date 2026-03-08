@@ -16,6 +16,7 @@ if os.path.exists(csv_path):
     mod_time = os.path.getmtime(csv_path)
     last_update = datetime.fromtimestamp(mod_time).strftime("%d/%m/%Y %H:%M")
     
+    # Lecture du CSV (sans cache pour voir les mises à jour du scraper immédiatement)
     df = pd.read_csv(csv_path)
     
     st.sidebar.header("🔍 Configuration")
@@ -23,19 +24,19 @@ if os.path.exists(csv_path):
     # 1. Type de Contrat
     tipo_contrato = st.sidebar.radio(
         "Type de contrat souhaité :",
-        options=["Stage", "Alternance"],
+        options=["Stage", "Alternance", "CDI/Autre"], # Ajout de CDI/Autre si besoin
         index=0
     )
 
     # 2. Ville
     villes_list = [
-        "Toute la France", "Lille", "Paris", "Lyon", "Bordeaux", 
+        "Toute la France", "Paris", "Lyon", "Lille", "Bordeaux", 
         "Nantes", "Toulouse", "Marseille", "Strasbourg", "Montpellier"
     ]
     selected_ville = st.sidebar.selectbox("Ville :", options=villes_list)
 
     # 3. Spécialité
-    roles = ["Tous les rôles", "Data Analyst", "Data Engineer", "Data Scientist", "Autre / BI / Software"]
+    roles = ["Tous les rôles", "Data Analyst", "Data Engineer", "Data Scientist", "BI / Décisionnel"]
     selected_role = st.sidebar.selectbox("Spécialité :", options=roles)
 
     # --- LOGIQUE DE FILTRAGE ---
@@ -44,21 +45,18 @@ if os.path.exists(csv_path):
     if selected_ville != "Toute la France":
         mask = mask & (df['Ville'].str.contains(selected_ville, case=False, na=False))
     
-    # Logic for strict and specific filtering
+    # Filtres par mots-clés dans le titre du poste
     if selected_role == "Data Analyst":
-        mask = mask & (df['Poste'].str.contains("Analyst|BI|Business Intelligence|Décisionnel", case=False, na=False))
+        mask = mask & (df['Poste'].str.contains("Analyst|Analytics", case=False, na=False))
     
     elif selected_role == "Data Engineer":
-        mask = mask & (df['Poste'].str.contains("Engineer|Ingénieur|Big Data|ETL", case=False, na=False))
+        mask = mask & (df['Poste'].str.contains("Engineer|Ingénieur|Data Eng", case=False, na=False))
     
     elif selected_role == "Data Scientist":
-        # Strict filter for Data Scientist or Data Science only
-        mask = mask & (df['Poste'].str.contains("Data Scientist|Data Science", case=False, na=False))
+        mask = mask & (df['Poste'].str.contains("Scientist|Science", case=False, na=False))
     
-    elif selected_role == "Autre / BI / Software":
-        # Exclude common keywords to show everything else
-        excluded = "Analyst|Engineer|Ingénieur|Scientist|Science|BI|Business Intelligence"
-        mask = mask & (~df['Poste'].str.contains(excluded, case=False, na=False))
+    elif selected_role == "BI / Décisionnel":
+        mask = mask & (df['Poste'].str.contains("BI|Business Intelligence|Décisionnel|Power BI|Tableau", case=False, na=False))
     
     df_filtered = df[mask]
 
@@ -71,21 +69,24 @@ if os.path.exists(csv_path):
 
     # --- AFFICHAGE DES RÉSULTATS ---
     if not df_filtered.empty:
+        # Trier par date (les plus récents en premier)
         for _, row in df_filtered.iterrows():
+            # Nettoyage de l'affichage de la source
+            source_display = row['Source'].upper() 
+            
             with st.expander(f"💼 {row['Poste']} - {row['Entreprise']}"):
                 c1, c2 = st.columns([4, 1])
                 with c1:
                     st.write(f"📍 **Ville :** {row['Ville']}")
                     st.write(f"📄 **Type :** {row['Type']}")
-                    st.write(f"🌐 **Source :** {row['Source'].capitalize()}")
+                    st.write(f"🌐 **Source :** `{source_display}`")
                     st.write(f"📅 **Ajouté le :** {row['Date']}")
                 with c2:
                     st.link_button("Voir l'offre ↗️", row['Lien'], use_container_width=True)
     else:
-        loc_phrase = "en France" if selected_ville == "Toute la France" else f"à {selected_ville}"
-        st.info(f"Désolé, aucune offre de {tipo_contrato} n'est disponible pour {selected_role} {loc_phrase}.")
+        st.info(f"Aucune offre de {tipo_contrato} trouvée pour {selected_role} actuellement.")
 
     st.sidebar.markdown("---")
     st.sidebar.caption(f"🕒 Données actualisées le : {last_update}")
 else:
-    st.error("Base de données introuvable. Lancez d'abord 'python scraper_reel.py'.")
+    st.error("Base de données introuvable. Veuillez lancer le scraper d'abord.")
